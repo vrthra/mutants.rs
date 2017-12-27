@@ -17,7 +17,7 @@ use std::collections::HashMap;
 
 #[derive(Debug)]
 struct MyOptions {
-    mutantlen: u64,
+    programlen: u64,
     nmutants: u64,
     ntests: u64,
     nfaults: u64,
@@ -27,9 +27,9 @@ struct MyOptions {
 
 impl ToString for MyOptions {
     fn to_string(&self) -> String {
-        return format!("data/mutantlen={:?}/nequivalents={:?}/nmutants={:?}/nfaults={:?}/ntests={:?}/nchecks={:?}/",
-                         self.mutantlen, self.nequivalents, self.nmutants,
-                         self.nfaults, self.ntests, self.nchecks);
+        return format!("data/programlen={:?}_nequivalents={:?}_nmutants={:?}/ntests={:?}_nfaults={:?}_nchecks={:?}/",
+                         self.programlen, self.nequivalents, self.nmutants, self.ntests,
+                         self.nfaults, self.nchecks);
     }
 }
 
@@ -50,12 +50,12 @@ fn gen_lst(num: u64, len: u64, nflipped: u64) -> Vec<BigUint> {
     return (0..num).map(|_| genbits(len, nflipped)).collect(); //::<Vec<_>>
 }
 
-fn gen_mutants(nmutants: u64, mutantlen: u64, nfaults: u64) -> Vec<BigUint> {
-    return gen_lst(nmutants, mutantlen, nfaults);
+fn gen_mutants(nmutants: u64, programlen: u64, nfaults: u64) -> Vec<BigUint> {
+    return gen_lst(nmutants, programlen, nfaults);
 }
 
-fn gen_tests(ntests: u64, mutantlen: u64, nchecks: u64) -> Vec<BigUint> {
-    return gen_lst(ntests, mutantlen, nchecks);
+fn gen_tests(ntests: u64, programlen: u64, nchecks: u64) -> Vec<BigUint> {
+    return gen_lst(ntests, programlen, nchecks);
 }
 
 fn kills(test: &BigUint, mutant: &BigUint) -> bool {
@@ -119,7 +119,7 @@ fn main() {
 
     let ref _program = args[0];
     let mut opts = Options::new();
-    opts.optopt("l", "mutantlen", "length of a mutant", "mutantlen");
+    opts.optopt("l", "programlen", "length of a mutant", "programlen");
     opts.optopt("m", "nmutants", "number of mutants", "nmutants");
     opts.optopt("t", "ntests", "number of tests", "ntests");
     opts.optopt("f", "nfaults", "maximum number of faults per mutant", "nfaults");
@@ -131,7 +131,7 @@ fn main() {
         Err(f) => panic!(f.to_string()),
     };
 
-    let mutantlen = match matches.opt_str("l") {
+    let programlen = match matches.opt_str("l") {
         Some(s) => s.parse().unwrap(),
         None => 10000,
     };
@@ -158,7 +158,7 @@ fn main() {
 
     let opts: MyOptions = MyOptions {
         nmutants,
-        mutantlen,
+        programlen,
         nfaults,
         ntests,
         nchecks,
@@ -171,9 +171,9 @@ fn main() {
     });
 
     // first generate our tests
-    let my_tests = gen_tests(ntests, mutantlen, nchecks);
+    let my_tests = gen_tests(ntests, programlen, nchecks);
     // Now generate n mutants
-    let mutants = gen_mutants(nmutants, mutantlen, nfaults);
+    let mutants = gen_mutants(nmutants, programlen, nfaults);
 
     let equivalents = zeros(nequivalents as usize);
 
