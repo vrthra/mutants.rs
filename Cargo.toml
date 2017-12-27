@@ -1,0 +1,14 @@
+[package]
+name = "mutants"
+version = "0.1.0"
+authors = ["Rahul Gopinath <rahul@gopinath.org>"]
+
+[[bin]]
+name = "mutants"
+path = "src/mutants.rs"
+
+[dependencies]
+num-bigint = "0.1"
+rand = "0.3"
+num-traits = "0.1.41"
+getopts = "0.2"
