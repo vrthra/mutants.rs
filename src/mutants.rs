@@ -85,7 +85,8 @@ fn mutant_killscore(
 
 fn do_statistics(opts: &MyOptions, mutant_kills: &HashMap<usize, usize>) -> () {
     let mut ntests = Vec::new();
-    for i in 0..1001 {
+    let max = mutant_kills.iter().map(|(_m, k)| k).max().unwrap();
+    for i in 0..*max {
         let mut e = 0;
         let mut a = 0;
         let mut s = 0;

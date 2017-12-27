@@ -11,7 +11,8 @@ import pandas as pd
 def plot(mydata, opts, lim):
     # number of mutants killed by exactly 0 tests
     nd = mydata[mydata.exactly == 0]
-    title = opts['title'] + (' ND=%d/%d (Mu: %3.1f%%)' % (len(nd), len(mydata), (1 - len(nd) / len(mydata))*100.0 ))
+    total = 10000
+    title = opts['title'] + (' ND=%d/%d (Mu: %3.1f%%)' % (len(nd), total, (1 - len(nd) / total)*100.0 ))
     p = gg.ggplot(gg.aes(x=opts['x'], y=opts['y']), data=mydata) + gg.geom_point() +\
             gg.xlab(opts['x']) + gg.ylab(opts['y']) + gg.ggtitle(title)  + \
        gg.xlim(0,lim)
