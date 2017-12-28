@@ -68,7 +68,7 @@ fn zeros(size: usize) -> Vec<BigUint> {
         .collect()
 }
 
-fn mutant_killed_by(m: &BigUint, tests: &Vec<BigUint>) -> usize {
+fn ntests_mutant_killed_by(m: &BigUint, tests: &Vec<BigUint>) -> usize {
     return tests.iter().filter(|t| kills(&t, m)).count();
 }
 
@@ -79,7 +79,7 @@ fn mutant_killscore(
     my_tests: &Vec<BigUint>,
 ) -> HashMap<usize, usize> {
     return mutants.iter().chain(equivalents.iter())
-        .map(|m| mutant_killed_by(m, my_tests))
+        .map(|m| ntests_mutant_killed_by(m, my_tests))
         .enumerate().collect();
 }
 
