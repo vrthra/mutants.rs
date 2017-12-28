@@ -72,7 +72,7 @@ fn ntests_mutant_killed_by(m: &BigUint, tests: &Vec<BigUint>) -> usize {
     return tests.iter().filter(|t| kills(&t, m)).count();
 }
 
-fn mutant_killscore(
+fn mutant_killedby_ntests(
     _opts: &MyOptions,
     mutants: &Vec<BigUint>,
     equivalents: &Vec<BigUint>,
@@ -178,7 +178,7 @@ fn main() {
     let equivalents = zeros(nequivalents as usize);
 
     // how many tests killed this mutant?
-    let mutant_kills = mutant_killscore(&opts, &mutants, &equivalents, &my_tests);
+    let mutant_kills = mutant_killedby_ntests(&opts, &mutants, &equivalents, &my_tests);
 
     do_statistics(&opts, &mutant_kills);
 }
