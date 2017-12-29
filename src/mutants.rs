@@ -27,9 +27,8 @@ struct MyOptions {
 
 impl ToString for MyOptions {
     fn to_string(&self) -> String {
-        return format!("data/programlen={:?}_nequivalents={:?}_nmutants={:?}/ntests={:?}_nfaults={:?}_nchecks={:?}/",
-                         self.programlen, self.nequivalents, self.nmutants, self.ntests,
-                         self.nfaults, self.nchecks);
+        return format!("data/nfaults={:?}_ntests={:?}_nchecks={:?}_",
+                         self.nfaults, self.ntests, self.nchecks);
     }
 }
 
@@ -86,30 +85,40 @@ fn mutant_killedby_ntests(
 fn do_statistics(opts: &MyOptions, mutant_kills: &HashMap<usize, usize>) -> () {
     let mut ntests = Vec::new();
     let max_tests_a_mutant_killed_by = mutant_kills.iter().map(|(_m, k)| k).max().unwrap();
-    for i in 0..*max_tests_a_mutant_killed_by {
-        let mut e = 0;
-        let mut a = 0;
-        let mut s = 0;
-        for (_m, k) in mutant_kills {
-            if *k == i {
-                e += 1;
+
+    let mname = format!("{:}mutants.csv", opts.to_string());
+    let mut f = File::create(&mname).expect(&format!("Unable to create file: {}", &mname));
+
+    f.write_all("mutant,killedbynt\n".as_bytes()).expect("Unable to write data");
+    for (m, killedby_n) in mutant_kills {
+        let data = format!("{},{}\n", m, killedby_n);
+        f.write_all(data.as_bytes()).expect("Unable to write data");
+    }
+
+    for nkillingt in 0..(*max_tests_a_mutant_killed_by + 1) {
+        let mut exactlynt = 0;
+        let mut atmostnt = 0;
+        let mut atleastnt = 0;
+        for (_m, killedby_n) in mutant_kills {
+            if *killedby_n == nkillingt {
+                exactlynt += 1;
             }
-            if *k >= i {
-                a += 1;
+            if *killedby_n >= nkillingt {
+                atleastnt += 1;
             }
-            if *k <= i {
-                s += 1;
+            if *killedby_n <= nkillingt {
+                atmostnt += 1;
             }
         }
-        ntests.push((i, a, s, e))
+        ntests.push((nkillingt, atleastnt, atmostnt, exactlynt))
     }
     let fname = format!("{:}kills.csv", opts.to_string());
     let mut f = File::create(&fname).expect(&format!("Unable to create file: {}", &fname));
 
-    f.write_all("ntests, atleast, atmost, exactly\n".as_bytes())
+    f.write_all("ntests,atleast,atmost,exactly\n".as_bytes())
         .expect("Unable to write data");
     for &(i, a, s, e) in &ntests {
-        let data = format!("{}, {}, {}, {}\n", i, a, s, e);
+        let data = format!("{},{},{},{}\n", i, a, s, e);
         f.write_all(data.as_bytes()).expect("Unable to write data");
     }
 }
@@ -166,7 +175,7 @@ fn main() {
     };
     eprintln!("{:?}", opts);
 
-    fs::create_dir_all(opts.to_string()).unwrap_or_else(|why| {
+    fs::create_dir_all("./data/").unwrap_or_else(|why| {
         println!("! {:?}", why.kind());
     });
 
