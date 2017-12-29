@@ -15,7 +15,7 @@ plot:
 	find $(DIR) -name \*kills.csv | while read a; do ./plot.py $$a & done
 
 all-tests:
-	for f in 1 10 100 1000 ; do for c in 1 10 100 1000 ; do $(MAKE) run-tests nfaults=$$f nchecks=$$c & done
+	for f in 1 10 100 1000 ; do for c in 1 10 100 1000 ; do $(MAKE) run-tests nfaults=$$f nchecks=$$c & done ; done
 
 run-tests:
 	for k in 100 1000 10000 100000 1000000; do $(MAKE) run ntests=$$k & done
