@@ -32,7 +32,7 @@ This is controlled by `--nfaults` which produces *upto* `$nfaults` differences. 
 
 Any test detecting a mutant will also detect any `OR` combination of mutants.
 
-In a real system, there are always mutants that are harder to detect than simple lexical faults. These may be simulated by making (some of) the bits set in a mutant the conditions *necessary* to detect it. That is, test kills a mutant if all conditions are satisfied instead of just one. That is, `(test & mutant) == mutant`.
+In a real system, there are always mutants that are harder to detect than simple lexical faults. These may be simulated by making (some of) the bits set in a mutant the conditions *necessary* to detect it. That is, test kills a mutant if all conditions are satisfied instead of just one. That is, `(test & mutant) == mutant`. Another implementation may be `hamming-weight(test & mutant) >= $stubbornness`.
 
 # Coverage
 
