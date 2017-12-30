@@ -22,7 +22,7 @@ $ ./target/release/mutants \
 The original program is a string of bits all set to zero, and any mutant as a
 variant of that string of bits with some bits flipped. That is, `*nfaults* = number of bits set to 1`
 A test is also a string of bits with a few bits set to 1. That is, `*nchecks* = number bits that are 1`.
-A test kills a mutant if `(test | mutant) != 0`.
+A test kills a mutant if `(test & mutant) != 0`.
 
 # Syntactic neighborhood (The competent programmer hypothesis)
 
