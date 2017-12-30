@@ -57,6 +57,21 @@ fn gen_tests(ntests: u64, programlen: u64, nchecks: u64) -> Vec<BigUint> {
     return gen_lst(ntests, programlen, nchecks);
 }
 
+fn hamming_wt(bignum: &BigUint) -> usize {
+    let mut bit_count = 0;
+    let mut i: BigUint = FromPrimitive::from_usize(1).unwrap();
+    let zero: BigUint = FromPrimitive::from_usize(0).unwrap();
+    /*eprintln!("{} maxbits: {}",  bignum.to_str_radix(2), bignum.bits());*/
+    for _ in 0 .. bignum.bits() {
+        if (&i & bignum) != zero {
+            bit_count += 1;
+        }
+        i = i << 1 as usize;
+    }
+    assert!(i > *bignum);
+    return bit_count;
+}
+
 fn kills(test: &BigUint, mutant: &BigUint) -> bool {
     return (test & mutant) > FromPrimitive::from_usize(0).unwrap();
 }
