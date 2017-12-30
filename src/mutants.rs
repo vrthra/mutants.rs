@@ -72,8 +72,8 @@ fn hamming_wt(bignum: &BigUint) -> usize {
     return bit_count;
 }
 
-fn kills(test: &BigUint, mutant: &BigUint) -> bool {
-    return (test & mutant) > FromPrimitive::from_usize(0).unwrap();
+fn kills(test: &BigUint, mutant: &BigUint, subtle: &usize) -> bool {
+    return hamming_wt(&(test & mutant)) > FromPrimitive::from_usize(*subtle).unwrap();
 }
 
 fn zeros(size: usize) -> Vec<BigUint> {
@@ -82,8 +82,8 @@ fn zeros(size: usize) -> Vec<BigUint> {
         .collect()
 }
 
-fn ntests_mutant_killed_by(m: &BigUint, tests: &Vec<BigUint>) -> usize {
-    return tests.iter().filter(|t| kills(&t, m)).count();
+fn ntests_mutant_killed_by(m: &BigUint, tests: &Vec<BigUint>, subtle: &usize) -> usize {
+    return tests.iter().filter(|t| kills(&t, m, subtle)).count();
 }
 
 fn mutant_killedby_ntests(
@@ -91,9 +91,10 @@ fn mutant_killedby_ntests(
     mutants: &Vec<BigUint>,
     equivalents: &Vec<BigUint>,
     my_tests: &Vec<BigUint>,
+    subtle: &usize,
 ) -> HashMap<usize, usize> {
     return mutants.iter().chain(equivalents.iter())
-        .map(|m| ntests_mutant_killed_by(m, my_tests))
+        .map(|m| ntests_mutant_killed_by(m, my_tests, subtle))
         .enumerate().collect();
 }
 
@@ -149,6 +150,7 @@ fn main() {
     opts.optopt("f", "nfaults", "maximum number of faults per mutant", "nfaults");
     opts.optopt("c", "nchecks", "maximum number of checks per test", "nchecks");
     opts.optopt("e", "nequivalents", "number of equivalents", "nequivalents");
+    opts.optopt("s", "subtle", "subtlety of mutants (how many conditions need to be fulfilled?)", "subtle");
 
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
@@ -179,6 +181,11 @@ fn main() {
         Some(s) => s.parse().unwrap(),
         None => 0,
     };
+    let subtle = match matches.opt_str("s") {
+        Some(s) => s.parse().unwrap(),
+        None => 0,
+    };
+
 
     let opts: MyOptions = MyOptions {
         nmutants,
@@ -202,7 +209,7 @@ fn main() {
     let equivalents = zeros(nequivalents as usize);
 
     // how many tests killed this mutant?
-    let mutant_kills = mutant_killedby_ntests(&opts, &mutants, &equivalents, &my_tests);
+    let mutant_kills = mutant_killedby_ntests(&opts, &mutants, &equivalents, &my_tests, &subtle);
 
     do_statistics(&opts, &mutant_kills);
 }
