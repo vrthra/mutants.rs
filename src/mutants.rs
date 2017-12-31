@@ -23,6 +23,7 @@ struct MyOptions {
     nfaults: u64,
     nchecks: u64,
     nequivalents: u64,
+    subtle: u64,
 }
 
 impl ToString for MyOptions {
@@ -76,7 +77,7 @@ fn hamming_wt(bignum: &BigUint) -> usize {
     return bit_count;
 }
 
-fn kills(test: &BigUint, mutant: &BigUint, subtle: &usize) -> bool {
+fn kills(test: &BigUint, mutant: &BigUint, subtle: &u64) -> bool {
     //! If subtle == 0, we interpret the bits flipped as conditions to
     //! be satisfied. That is, all bits need to be anded.
     //! If subtle == 1, then it is same as checking if any of the bits
@@ -86,7 +87,7 @@ fn kills(test: &BigUint, mutant: &BigUint, subtle: &usize) -> bool {
     if *subtle == 0 {
         return &(test & mutant) == mutant;
     } else {
-        return hamming_wt(&(test & mutant)) >= FromPrimitive::from_usize(*subtle).unwrap();
+        return hamming_wt(&(test & mutant)) >= FromPrimitive::from_u64(*subtle).unwrap();
     }
 }
 
@@ -96,19 +97,18 @@ fn zeros(size: usize) -> Vec<BigUint> {
         .collect()
 }
 
-fn ntests_mutant_killed_by(m: &BigUint, tests: &Vec<BigUint>, subtle: &usize) -> usize {
-    return tests.iter().filter(|t| kills(&t, m, subtle)).count();
+fn ntests_mutant_killed_by(m: &BigUint, tests: &Vec<BigUint>, subtle: &u64) -> usize {
+    return tests.iter().filter(|t| kills(&t, m, &subtle)).count();
 }
 
 fn mutant_killedby_ntests(
-    _opts: &MyOptions,
+    opts: &MyOptions,
     mutants: &Vec<BigUint>,
     equivalents: &Vec<BigUint>,
     my_tests: &Vec<BigUint>,
-    subtle: &usize,
 ) -> HashMap<usize, usize> {
     return mutants.iter().chain(equivalents.iter())
-        .map(|m| ntests_mutant_killed_by(m, my_tests, subtle))
+        .map(|m| ntests_mutant_killed_by(m, my_tests, &opts.subtle))
         .enumerate().collect();
 }
 
@@ -218,6 +218,7 @@ fn main() {
         ntests,
         nchecks,
         nequivalents,
+        subtle,
     };
     eprintln!("{:?}", opts);
 
@@ -233,7 +234,7 @@ fn main() {
     let equivalents = zeros(nequivalents as usize);
 
     // how many tests killed this mutant?
-    let mutant_kills = mutant_killedby_ntests(&opts, &mutants, &equivalents, &my_tests, &subtle);
+    let mutant_kills = mutant_killedby_ntests(&opts, &mutants, &equivalents, &my_tests);
 
     save_csv(&opts, &mutant_kills);
 }
