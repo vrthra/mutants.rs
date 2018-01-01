@@ -80,7 +80,7 @@ fn hamming_wt(bignum: &BigUint) -> usize {
     bit_count
 }
 
-fn kills(test: &BigUint, mutant: &BigUint, subtle: &u64) -> bool {
+fn kills(test: &BigUint, mutant: &BigUint, subtle: &usize) -> bool {
     //! If subtle == 0, we interpret the bits flipped as conditions to
     //! be satisfied. That is, all bits need to be anded.
     //! If subtle == 1, then it is same as checking if any of the bits
@@ -90,7 +90,7 @@ fn kills(test: &BigUint, mutant: &BigUint, subtle: &u64) -> bool {
     if *subtle == 0 {
         &(test & mutant) == mutant
     } else {
-        hamming_wt(&(test & mutant)) >= FromPrimitive::from_u64(*subtle).unwrap()
+        hamming_wt(&(test & mutant)) >= *subtle
     }
 }
 
@@ -98,7 +98,7 @@ fn zeros(size: usize) -> Vec<BigUint> {
     repeat(BigUint::zero()).take(size).collect()
 }
 
-fn ntests_mutant_killed_by(m: &BigUint, tests: &[BigUint], subtle: &u64) -> usize {
+fn ntests_mutant_killed_by(m: &BigUint, tests: &[BigUint], subtle: &usize) -> usize {
     tests.iter().filter(|t| kills(t, m, subtle)).count()
 }
 
@@ -109,14 +109,14 @@ fn mutant_killedby_ntests(
     my_tests: &[BigUint],
 ) -> HashMap<usize, usize> {
     mutants.iter().chain(equivalents)
-        .map(|m| ntests_mutant_killed_by(m, my_tests, &opts.subtle))
+        .map(|m| ntests_mutant_killed_by(m, my_tests, &FromPrimitive::from_u64(opts.subtle).unwrap()))
         .enumerate().collect()
 }
 
 fn save_csv(opts: &MyOptions, mutant_kills: &HashMap<usize, usize>) {
     let max_tests_a_mutant_killed_by = mutant_kills.iter().map(|(_m, k)| k).max().unwrap();
 
-    let mname = format!("{:}mutants.csv", opts.to_string());
+    let mname = format!("{}mutants.csv", opts.to_string());
     let mut f = File::create(&mname).unwrap_or_else(|e| {
       panic!("Unable to create file {}: {}", &mname, e);
     });
@@ -144,7 +144,7 @@ fn save_csv(opts: &MyOptions, mutant_kills: &HashMap<usize, usize>) {
 		(nkillingt, atleastnt, atmostnt, exactlynt)
 	});
 
-    let fname = format!("{:}kills.csv", opts.to_string());
+    let fname = format!("{}kills.csv", opts.to_string());
     let mut f = File::create(&fname).unwrap_or_else(|e| {
       panic!("Unable to create file {}: {}", &fname, e);
     });
