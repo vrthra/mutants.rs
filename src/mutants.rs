@@ -5,7 +5,7 @@ extern crate rand;
 
 use num_bigint::BigUint;
 use rand::distributions::{IndependentSample, Range};
-use num_traits::FromPrimitive;
+use num_traits::{FromPrimitive, One, Zero};
 use std::fs;
 use std::fs::File;
 use std::io::Write;
@@ -36,11 +36,10 @@ impl ToString for MyOptions {
 fn genbits(bitlen: u64, nflipped: u64) -> BigUint {
     let mut rng = rand::thread_rng();
     let faulty_bits: u64 = Range::new(1, nflipped + 1).ind_sample(&mut rng);
-    let mut m: BigUint = FromPrimitive::from_usize(0).unwrap();
+    let mut m: BigUint = BigUint::zero();
     for _ in 0..faulty_bits {
         let pos: usize = Range::new(0, bitlen).ind_sample(&mut rng) as usize;
-        let one: BigUint = FromPrimitive::from_usize(1).unwrap();
-        let fault = one << pos;
+        let fault = BigUint::one() << pos;
         m |= fault;
     }
     m
@@ -65,10 +64,9 @@ fn bitlog(bignum: &BigUint) -> () {
 
 fn hamming_wt(bignum: &BigUint) -> usize {
     let mut bit_count = 0;
-    let mut i: BigUint = FromPrimitive::from_usize(1).unwrap();
-    let zero: BigUint = FromPrimitive::from_usize(0).unwrap();
+    let mut i = BigUint::one();
     for _ in 0 .. bignum.bits() {
-        if (&i & bignum) != zero {
+        if (&i & bignum) != BigUint::zero() {
             bit_count += 1;
         }
         i <<= 1 as usize;
@@ -92,7 +90,7 @@ fn kills(test: &BigUint, mutant: &BigUint, subtle: &u64) -> bool {
 }
 
 fn zeros(size: usize) -> Vec<BigUint> {
-    repeat(FromPrimitive::from_usize(0).unwrap())
+    repeat(BigUint::zero())
         .take(size)
         .collect()
 }
