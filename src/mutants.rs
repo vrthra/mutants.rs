@@ -4,6 +4,7 @@ extern crate num_traits;
 extern crate rand;
 
 use num_bigint::BigUint;
+use rand::Rng;
 use rand::distributions::{IndependentSample, Range};
 use num_traits::{FromPrimitive, One, Zero};
 use std::fs;
@@ -35,14 +36,15 @@ impl ToString for MyOptions {
 
 fn genbits(bitlen: u64, nflipped: u64) -> BigUint {
     let mut rng = rand::thread_rng();
-    let faulty_bits: u64 = Range::new(1, nflipped + 1).ind_sample(&mut rng);
-    let mut m: BigUint = BigUint::zero();
-    for _ in 0..faulty_bits {
-        let pos: usize = Range::new(0, bitlen).ind_sample(&mut rng) as usize;
+
+    let faulty_bits: u64 = rng.gen_range(1, nflipped + 1);
+    let rr = Range::new(0, bitlen as usize);
+
+    (0..faulty_bits).fold(BigUint::zero(), |m, _|{
+        let pos = rr.ind_sample(&mut rng);
         let fault = BigUint::one() << pos;
-        m |= fault;
-    }
-    m
+        m | fault
+    })
 }
 
 fn gen_lst(num: u64, len: u64, nflipped: u64) -> Vec<BigUint> {
