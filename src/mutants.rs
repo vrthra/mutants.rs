@@ -3,6 +3,7 @@ extern crate num_bigint;
 extern crate num_traits;
 extern crate rand;
 
+use std::process;
 use num_bigint::BigUint;
 use rand::Rng;
 use rand::distributions::{IndependentSample, Range};
@@ -48,7 +49,7 @@ fn genbits(bitlen: u64, nflipped: u64) -> BigUint {
 }
 
 fn gen_lst(num: u64, len: u64, nflipped: u64) -> Vec<BigUint> {
-    (0..num).map(|_| genbits(len, nflipped)).collect() //::<Vec<_>>
+    (0..num).map(|_| genbits(len, nflipped)).collect()
 }
 
 fn gen_mutants(nmutants: u64, programlen: u64, nfaults: u64) -> Vec<BigUint> {
@@ -92,9 +93,7 @@ fn kills(test: &BigUint, mutant: &BigUint, subtle: &u64) -> bool {
 }
 
 fn zeros(size: usize) -> Vec<BigUint> {
-    repeat(BigUint::zero())
-        .take(size)
-        .collect()
+    repeat(BigUint::zero()).take(size).collect()
 }
 
 fn ntests_mutant_killed_by(m: &BigUint, tests: &[BigUint], subtle: &u64) -> usize {
@@ -158,9 +157,8 @@ fn print_usage(program: &str, opts: &Options) {
     print!("{}", opts.usage(&brief));
 }
 
-fn main() {
-    let args: Vec<String> = env::args().map(|x| x.to_string()).collect();
-
+fn parse_arguments() -> MyOptions {
+    let args: Vec<_> = env::args().collect();
     let program = &args[0];
     let mut opts = Options::new();
     opts.optflag("h", "help", "print help");
@@ -179,47 +177,24 @@ fn main() {
 
     if matches.opt_present("h") {
         print_usage(program, &opts);
-        return;
+        process::exit(0);
+    };
+
+    let numeric_arg = |name, def| matches.opt_str(name).map_or(def, |s| s.parse().unwrap());
+
+    MyOptions {
+        nmutants: numeric_arg("m", 10_1000),
+        programlen: numeric_arg("l", 10_1000),
+        ntests: numeric_arg("t", 10_1000),
+        nfaults: numeric_arg("f", 10),
+        nchecks: numeric_arg("c", 10),
+        nequivalents: numeric_arg("c", 0),
+        subtle: numeric_arg("s", 1),
     }
-    let programlen = match matches.opt_str("l") {
-        Some(s) => s.parse().unwrap(),
-        None => 10_000,
-    };
-    let nmutants = match matches.opt_str("m") {
-        Some(s) => s.parse().unwrap(),
-        None => 10_000,
-    };
-    let ntests = match matches.opt_str("t") {
-        Some(s) => s.parse().unwrap(),
-        None => 10_000,
-    };
-    let nfaults = match matches.opt_str("f") {
-        Some(s) => s.parse().unwrap(),
-        None => 10,
-    };
-    let nchecks = match matches.opt_str("c") {
-        Some(s) => s.parse().unwrap(),
-        None => 10,
-    };
-    let nequivalents = match matches.opt_str("e") {
-        Some(s) => s.parse().unwrap(),
-        None => 0,
-    };
-    let subtle = match matches.opt_str("s") {
-        Some(s) => s.parse().unwrap(),
-        None => 0,
-    };
+}
 
-
-    let opts: MyOptions = MyOptions {
-        nmutants,
-        programlen,
-        nfaults,
-        ntests,
-        nchecks,
-        nequivalents,
-        subtle,
-    };
+fn main() {
+    let opts = parse_arguments();
     eprintln!("{:?}", opts);
 
     fs::create_dir_all("./data/").unwrap_or_else(|why| {
@@ -227,11 +202,11 @@ fn main() {
     });
 
     // first generate our tests
-    let my_tests = gen_tests(ntests, programlen, nchecks);
+    let my_tests = gen_tests(opts.ntests, opts.programlen, opts.nchecks);
     // Now generate n mutants
-    let mutants = gen_mutants(nmutants, programlen, nfaults);
+    let mutants = gen_mutants(opts.nmutants, opts.programlen, opts.nfaults);
 
-    let equivalents = zeros(nequivalents as usize);
+    let equivalents = zeros(opts.nequivalents as usize);
 
     // how many tests killed this mutant?
     let mutant_kills = mutant_killedby_ntests(&opts, &mutants, &equivalents, &my_tests);
