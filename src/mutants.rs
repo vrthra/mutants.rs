@@ -3,17 +3,19 @@ extern crate num_bigint;
 extern crate num_traits;
 extern crate rand;
 
-use std::process;
-use num_bigint::BigUint;
+use getopts::Options;
 use rand::Rng;
 use rand::distributions::{IndependentSample, Range};
 use num_traits::{FromPrimitive, One, Zero};
+use num_bigint::BigUint;
+
+use std::process;
+use std::env;
+use std::fmt;
 use std::fs;
 use std::fs::File;
 use std::io::Write;
 use std::iter::repeat;
-use getopts::Options;
-use std::env;
 
 use std::collections::HashMap;
 
@@ -28,11 +30,11 @@ struct MyOptions {
     subtle: u64,
 }
 
-impl ToString for MyOptions {
-    fn to_string(&self) -> String {
-        return format!("data/nfaults={:?}_ntests={:?}_nchecks={:?}_",
-                         self.nfaults, self.ntests, self.nchecks);
-    }
+impl fmt::Display for MyOptions {
+	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+		write!(f, "data/nfaults={:?}_ntests={:?}_nchecks={:?}_",
+                  self.nfaults, self.ntests, self.nchecks)
+	}
 }
 
 fn genbits(bitlen: u64, nflipped: u64) -> BigUint {
@@ -106,49 +108,50 @@ fn mutant_killedby_ntests(
     equivalents: &[BigUint],
     my_tests: &[BigUint],
 ) -> HashMap<usize, usize> {
-    mutants.iter().chain(equivalents.iter())
+    mutants.iter().chain(equivalents)
         .map(|m| ntests_mutant_killed_by(m, my_tests, &opts.subtle))
         .enumerate().collect()
 }
 
-fn save_csv(opts: &MyOptions, mutant_kills: &HashMap<usize, usize>) -> () {
-    let mut ntests = Vec::new();
+fn save_csv(opts: &MyOptions, mutant_kills: &HashMap<usize, usize>) {
     let max_tests_a_mutant_killed_by = mutant_kills.iter().map(|(_m, k)| k).max().unwrap();
 
     let mname = format!("{:}mutants.csv", opts.to_string());
-    let mut f = File::create(&mname).expect(&format!("Unable to create file: {}", &mname));
+    let mut f = File::create(&mname).unwrap_or_else(|e| {
+      panic!("Unable to create file {}: {}", &mname, e);
+    });
 
-    f.write_all(b"mutant,killedbynt\n").expect("Unable to write data");
-    for (m, killedby_n) in mutant_kills {
-        let data = format!("{},{}\n", m, killedby_n);
-        f.write_all(data.as_bytes()).expect("Unable to write data");
+    writeln!(f, "mutant,killedbynt\n").expect("Unable to write data");
+    for (m, killedby_n) in mutant_kills.iter() {
+        writeln!(f, "{},{}\n", m, killedby_n).expect("Unable to write data");
     }
 
-    for nkillingt in 0..(*max_tests_a_mutant_killed_by + 1) {
-        let mut exactlynt = 0;
-        let mut atmostnt = 0;
-        let mut atleastnt = 0;
-        for (_m, killedby_n) in mutant_kills {
-            if *killedby_n == nkillingt {
-                exactlynt += 1;
-            }
-            if *killedby_n >= nkillingt {
-                atleastnt += 1;
-            }
-            if *killedby_n <= nkillingt {
-                atmostnt += 1;
-            }
-        }
-        ntests.push((nkillingt, atleastnt, atmostnt, exactlynt))
-    }
+	let ntests = (0..*max_tests_a_mutant_killed_by + 1).map(|nkillingt| {
+		let mut exactlynt = 0;
+		let mut atmostnt = 0;
+		let mut atleastnt = 0;
+		for killedby_n in mutant_kills.values() {
+			if *killedby_n == nkillingt {
+				exactlynt += 1;
+			}
+			if *killedby_n >= nkillingt {
+				atleastnt += 1;
+			}
+			if *killedby_n <= nkillingt {
+				atmostnt += 1;
+			}
+		}
+		(nkillingt, atleastnt, atmostnt, exactlynt)
+	});
+
     let fname = format!("{:}kills.csv", opts.to_string());
-    let mut f = File::create(&fname).expect(&format!("Unable to create file: {}", &fname));
+    let mut f = File::create(&fname).unwrap_or_else(|e| {
+      panic!("Unable to create file {}: {}", &fname, e);
+    });
 
-    f.write_all(b"ntests,atleast,atmost,exactly\n")
-        .expect("Unable to write data");
-    for &(i, a, s, e) in &ntests {
-        let data = format!("{},{},{},{}\n", i, a, s, e);
-        f.write_all(data.as_bytes()).expect("Unable to write data");
+    writeln!(f, "ntests,atleast,atmost,exactly\n").expect("Unable to write data");
+    for (i, a, s, e) in ntests {
+        writeln!(f, "{},{},{},{}\n", i, a, s, e).expect("Unable to write data");
     }
 }
 
@@ -168,7 +171,8 @@ fn parse_arguments() -> MyOptions {
     opts.optopt("f", "nfaults", "maximum number of faults per mutant", "nfaults");
     opts.optopt("c", "nchecks", "maximum number of checks per test", "nchecks");
     opts.optopt("e", "nequivalents", "number of equivalents", "nequivalents");
-    opts.optopt("s", "subtle", "subtlety of mutants (how many conditions need to be fulfilled?) -- 0 for conditions, 1 for *any* and >1 for hamming weight", "subtle");
+    opts.optopt("s", "subtle", "subtlety of mutants (how many conditions need to\
+		be fulfilled?) -- 0 for conditions, 1 for *any* and >1 for hamming weight", "subtle");
 
     let matches = match opts.parse(&args[1..]) {
         Ok(m) => m,
