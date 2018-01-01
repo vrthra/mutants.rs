@@ -1,4 +1,5 @@
 extern crate getopts;
+extern crate bit_vec;
 extern crate num_bigint;
 extern crate num_traits;
 extern crate rand;
@@ -18,6 +19,7 @@ use std::io::Write;
 use std::iter::repeat;
 
 use std::collections::HashMap;
+use bit_vec::BitVec;
 
 #[derive(Debug)]
 struct MyOptions {
@@ -68,16 +70,7 @@ fn bitlog(bignum: &BigUint) -> () {
 }
 
 fn hamming_wt(bignum: &BigUint) -> usize {
-    let mut bit_count = 0;
-    let mut i = BigUint::one();
-    for _ in 0 .. bignum.bits() {
-        if (&i & bignum) != BigUint::zero() {
-            bit_count += 1;
-        }
-        i <<= 1 as usize;
-    }
-    assert!(i > *bignum);
-    bit_count
+	BitVec::from_bytes(&bignum.to_bytes_be()).iter().filter(|b| *b).count()
 }
 
 fn kills(test: &BigUint, mutant: &BigUint, subtle: &usize) -> bool {
