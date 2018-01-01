@@ -43,19 +43,19 @@ fn genbits(bitlen: u64, nflipped: u64) -> BigUint {
         let fault = one << pos;
         m |= fault;
     }
-    return m;
+    m
 }
 
 fn gen_lst(num: u64, len: u64, nflipped: u64) -> Vec<BigUint> {
-    return (0..num).map(|_| genbits(len, nflipped)).collect(); //::<Vec<_>>
+    (0..num).map(|_| genbits(len, nflipped)).collect() //::<Vec<_>>
 }
 
 fn gen_mutants(nmutants: u64, programlen: u64, nfaults: u64) -> Vec<BigUint> {
-    return gen_lst(nmutants, programlen, nfaults);
+    gen_lst(nmutants, programlen, nfaults)
 }
 
 fn gen_tests(ntests: u64, programlen: u64, nchecks: u64) -> Vec<BigUint> {
-    return gen_lst(ntests, programlen, nchecks);
+    gen_lst(ntests, programlen, nchecks)
 }
 
 #[allow(dead_code)]
@@ -71,10 +71,10 @@ fn hamming_wt(bignum: &BigUint) -> usize {
         if (&i & bignum) != zero {
             bit_count += 1;
         }
-        i = i << 1 as usize;
+        i <<= 1 as usize;
     }
     assert!(i > *bignum);
-    return bit_count;
+    bit_count
 }
 
 fn kills(test: &BigUint, mutant: &BigUint, subtle: &u64) -> bool {
@@ -85,9 +85,9 @@ fn kills(test: &BigUint, mutant: &BigUint, subtle: &u64) -> bool {
     //! If subtle > 1, then it is same as adding a little bit of stubbornness
     //! to each mutant in that some of the bits are interpreted as conditions
     if *subtle == 0 {
-        return &(test & mutant) == mutant;
+        &(test & mutant) == mutant
     } else {
-        return hamming_wt(&(test & mutant)) >= FromPrimitive::from_u64(*subtle).unwrap();
+        hamming_wt(&(test & mutant)) >= FromPrimitive::from_u64(*subtle).unwrap()
     }
 }
 
@@ -97,19 +97,19 @@ fn zeros(size: usize) -> Vec<BigUint> {
         .collect()
 }
 
-fn ntests_mutant_killed_by(m: &BigUint, tests: &Vec<BigUint>, subtle: &u64) -> usize {
-    return tests.iter().filter(|t| kills(&t, m, &subtle)).count();
+fn ntests_mutant_killed_by(m: &BigUint, tests: &[BigUint], subtle: &u64) -> usize {
+    tests.iter().filter(|t| kills(t, m, subtle)).count()
 }
 
 fn mutant_killedby_ntests(
     opts: &MyOptions,
-    mutants: &Vec<BigUint>,
-    equivalents: &Vec<BigUint>,
-    my_tests: &Vec<BigUint>,
+    mutants: &[BigUint],
+    equivalents: &[BigUint],
+    my_tests: &[BigUint],
 ) -> HashMap<usize, usize> {
-    return mutants.iter().chain(equivalents.iter())
+    mutants.iter().chain(equivalents.iter())
         .map(|m| ntests_mutant_killed_by(m, my_tests, &opts.subtle))
-        .enumerate().collect();
+        .enumerate().collect()
 }
 
 fn save_csv(opts: &MyOptions, mutant_kills: &HashMap<usize, usize>) -> () {
@@ -119,7 +119,7 @@ fn save_csv(opts: &MyOptions, mutant_kills: &HashMap<usize, usize>) -> () {
     let mname = format!("{:}mutants.csv", opts.to_string());
     let mut f = File::create(&mname).expect(&format!("Unable to create file: {}", &mname));
 
-    f.write_all("mutant,killedbynt\n".as_bytes()).expect("Unable to write data");
+    f.write_all(b"mutant,killedbynt\n").expect("Unable to write data");
     for (m, killedby_n) in mutant_kills {
         let data = format!("{},{}\n", m, killedby_n);
         f.write_all(data.as_bytes()).expect("Unable to write data");
@@ -145,7 +145,7 @@ fn save_csv(opts: &MyOptions, mutant_kills: &HashMap<usize, usize>) -> () {
     let fname = format!("{:}kills.csv", opts.to_string());
     let mut f = File::create(&fname).expect(&format!("Unable to create file: {}", &fname));
 
-    f.write_all("ntests,atleast,atmost,exactly\n".as_bytes())
+    f.write_all(b"ntests,atleast,atmost,exactly\n")
         .expect("Unable to write data");
     for &(i, a, s, e) in &ntests {
         let data = format!("{},{},{},{}\n", i, a, s, e);
@@ -153,7 +153,7 @@ fn save_csv(opts: &MyOptions, mutant_kills: &HashMap<usize, usize>) -> () {
     }
 }
 
-fn print_usage(program: &str, opts: Options) {
+fn print_usage(program: &str, opts: &Options) {
     let brief = format!("Usage: {} FILE [options]", program);
     print!("{}", opts.usage(&brief));
 }
@@ -161,7 +161,7 @@ fn print_usage(program: &str, opts: Options) {
 fn main() {
     let args: Vec<String> = env::args().map(|x| x.to_string()).collect();
 
-    let ref program = args[0];
+    let program = &args[0];
     let mut opts = Options::new();
     opts.optflag("h", "help", "print help");
     opts.optopt("l", "programlen", "length of a mutant", "programlen");
@@ -178,20 +178,20 @@ fn main() {
     };
 
     if matches.opt_present("h") {
-        print_usage(&program, opts);
+        print_usage(program, &opts);
         return;
     }
     let programlen = match matches.opt_str("l") {
         Some(s) => s.parse().unwrap(),
-        None => 10000,
+        None => 10_000,
     };
     let nmutants = match matches.opt_str("m") {
         Some(s) => s.parse().unwrap(),
-        None => 10000,
+        None => 10_000,
     };
     let ntests = match matches.opt_str("t") {
         Some(s) => s.parse().unwrap(),
-        None => 10000,
+        None => 10_000,
     };
     let nfaults = match matches.opt_str("f") {
         Some(s) => s.parse().unwrap(),
@@ -223,7 +223,7 @@ fn main() {
     eprintln!("{:?}", opts);
 
     fs::create_dir_all("./data/").unwrap_or_else(|why| {
-        println!("! {:?}", why.kind());
+        panic!("! {:?}", why.kind());
     });
 
     // first generate our tests
